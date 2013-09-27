@@ -18,11 +18,18 @@ import Prelude hiding (map)
 
 ---------------------- Primitive chunking ------------------------------
 
+-- | An abstract type signaling that a stream of values is broken into
+-- pieces. For example, in the same way that a @Producer a m ()@ represents
+-- @m [a]@, a @Producer (Chunked a) m ()@ represents @m [[a]]@.
 data Chunked a = InChunk a | EndOfChunk
 
+-- | Takes in a stream of values and packages them together into a single
+-- chunk. 'makeChunk' is analagous to @\x -> [x]@.
 makeChunk :: Monad m => Conduit a m (Chunked a)
 makeChunk = map InChunk >> yield EndOfChunk
 
+-- | Takes in a stream of chunks, only consuming the first one, and streams
+-- out the values inside that first chunk.
 takeChunk :: Monad m => Conduit (Chunked a) m a
 takeChunk = do
     mval <- await
@@ -33,18 +40,26 @@ takeChunk = do
 
 ------------------- Composite Chunking ---------------------------------
 
+-- | Counts the total number of chunks in a stream.
 numChunks :: Monad m => Consumer (Chunked a) m Int
 numChunks = accumChunks (\x -> return (x + 1)) 0
 
+-- | Unpacks all the chunks in a stream, yielding all the values in all
+-- the chunks.
 concatChunks :: Monad m => Conduit (Chunked a) m a
 concatChunks = foreverEOF takeChunk
 
+-- | Runs a given conduit repeatedly on every chunk that comes in.
 mapChunks :: Monad m => Conduit i m o -> Conduit (Chunked i) m (Chunked o)
 mapChunks p = foreverEOF (takeChunk +$= p =$= makeChunk)
 
+-- | Runs a given consumer repeatedly on every chunk, streaming out the
+-- return values.
 foldChunks :: Monad m => Consumer i m r -> Conduit (Chunked i) m r
 foldChunks p = foreverEOF ((takeChunk +$= p) >>= yield)
 
+-- | Runs a given action on every input chunk, threading the return value
+-- on the a chunk to the next action on the next chunk.
 accumChunks :: Monad m => (a -> ConduitM i o m a) -> a -> ConduitM (Chunked i) o m a
 accumChunks f = start where
     start a = peek >>= maybe (return a) (const $ loop (f a))

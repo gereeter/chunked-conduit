@@ -12,8 +12,9 @@ module Data.Conduit.Chunked (
 ) where
 
 import Data.Conduit
-import Data.Conduit.List (sinkNull, peek)
+import Data.Conduit.List (peek)
 import Data.Conduit.Chunked.Base
+import Data.Conduit.Chunked.Helper
 
 -- | Counts the total number of chunks in a stream.
 numChunks :: Monad m => Consumer (Chunked a) m Int
@@ -39,15 +40,3 @@ accumChunks :: Monad m => (a -> ConduitM i o m a) -> a -> ConduitM (Chunked i) o
 accumChunks f = start where
     start a = peek >>= maybe (return a) (const $ loop (f a))
     loop consumer = (takeChunk +$= consumer) >>= start
-
----------------------- Helper Functions --------------------------------
-
-(+$=) :: Monad m => Conduit a m b -> ConduitM b c m r -> ConduitM a c m r
-left +$= right = left =$= right' where
-    right' = do
-        ret <- right
-        sinkNull
-        return ret
-
-foreverEOF :: Monad m => ConduitM i o m () -> ConduitM i o m ()
-foreverEOF p = peek >>= maybe (return ()) (const (p >> foreverEOF p))

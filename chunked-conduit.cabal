@@ -1,0 +1,12 @@
+Name:          chunked-conduit
+Version:       0.1
+Description:   Perfect streaming for conduit
+Author:        Jonathan S
+Build-Type:    Simple
+Cabal-Version: >=1.8
+
+library
+    HS-Source-Dirs:  src
+    Build-Depends:   base, conduit
+    Exposed-modules: Data.Conduit.Chunked
+    ghc-options:     -Wall

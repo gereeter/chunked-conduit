@@ -8,5 +8,5 @@ Cabal-Version: >=1.8
 library
     HS-Source-Dirs:  src
     Build-Depends:   base, conduit
-    Exposed-modules: Data.Conduit.Chunked
+    Exposed-modules: Data.Conduit.Chunked, Data.Conduit.Chunked.Base
     ghc-options:     -Wall
